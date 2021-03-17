@@ -1,21 +1,27 @@
-import os
-import json
 import asyncio
-import requests
-import tabulate
+from cogs.maincog import MainCog
 import discord
 from discord.ext import commands, tasks
-import subprocess
+import json
+import os
+import requests
 import settings
-
-from cogs.maincog import MainCog
+import subprocess
+import tabulate
 
 URL = os.environ.get('SYSAPI_URL')
 TOKEN = os.environ.get('DISCORD_TOKEN')
 
 description = '''System Monitor'''
 bot = commands.Bot(command_prefix='!', description=description)
-bot.add_cog(MainCog(bot=bot, url=URL))
+#bot.add_cog(MainCog(bot=bot, url=URL))
+
+# TODO fix this shit-tip file
+#   Fix security vulnerabilities (as much as you can when building something like this anyways..)
+#   Fix structure
+#   Fix consistency
+#   
+#   Integrate sqlite for storing netauth tokens n shit
 
 @bot.event
 async def on_ready():
@@ -23,13 +29,6 @@ async def on_ready():
     print(bot.user.name)
     print(bot.user.id)
     print('------')
-
-@bot.command()
-async def supervisord(ctx, arg):
-    data = subprocess.check_output(["supervisorctl", arg])
-    print(data)
-
-    await ctx.send("supervisord status: **" + data.decode("utf-8") + '**')
 
 @bot.command()
 async def uptime(ctx):
@@ -54,6 +53,16 @@ async def top(ctx):
 
     await ctx.send(message)
 
+
+@bot.command()
+async def netauth(ctx, arg):
+    """Fetch top process consuming most memory"""
+    token = str(arg)
+    response = requests.get('https://sysapi.ddns.net/network/wifi', headers={'Authorization': token})
+    network = response.json()
+    data = json.dumps(network['data'], indent=2)
+
+    await ctx.send('```\n' + data + '\n```')
 
 @bot.command()
 async def sys(ctx, metric):
@@ -92,6 +101,24 @@ async def sys(ctx, metric):
 
             await ctx.send(embed=embedlist)
 
+
+@bot.command()
+async def supervisor(ctx):
+    """Get supervisor status"""
+    wd = os.getcwd()
+    os.chdir("/home/pi")
+
+    # Obviously supervisor is running otherwise the bot wouldn't respond...
+    # probably should rename to make it clearer I want a list of what's running.
+    try:
+        data = subprocess.check_output(['supervisorctl', 'status'])
+        message = "supervisor status:\n**" + data.decode("utf-8") + "**"
+    except:
+        message = "supervisor status:\n**not running.**"
+
+    os.chdir(wd)
+
+    await ctx.send(message)
 
 @bot.command()
 async def iptables(ctx):
