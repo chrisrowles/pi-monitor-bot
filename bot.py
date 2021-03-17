@@ -24,6 +24,12 @@ async def on_ready():
     print(bot.user.id)
     print('------')
 
+@bot.command()
+async def supervisord(ctx, arg):
+    data = subprocess.check_output(["supervisorctl", arg])
+    print(data)
+
+    await ctx.send("supervisord status: **" + data.decode("utf-8") + '**')
 
 @bot.command()
 async def uptime(ctx):
@@ -33,45 +39,6 @@ async def uptime(ctx):
     uptime = system['data']['platform']['uptime']
 
     message = "Network has been up for " + system['data']['platform']['uptime']
-
-    await ctx.send(message)
-
-    
-@bot.command()
-async def iptables(ctx):
-    """Fetch active iptables rules"""
-    data = subprocess.check_output(["sudo", "iptables", "-L"])
-
-    await ctx.send('```\n' + data.decode("utf-8") + '\n```')
-
-    
-@bot.command()
-async def jailer(ctx, jail, action, ip):
-    """Ban/unban an IP address"""
-    data = subprocess.check_output(["sudo", "fail2ban-client", "set", jail, action, ip])
-    actioned = "banned" if action == "banip" else "unbanned"
-
-    message = "**" + ip + "** has been " + actioned + ", please run `!iptables` to confirm rules"
-
-    await ctx.send(message)
-
-
-@bot.command()
-async def unban(ctx, jail, ip):
-    """Unban an IP address (shorthand unban action for !jailer)"""
-    data = subprocess.check_output(["sudo", "fail2ban-client", "set", jail, "unbanip", ip])
-
-    message = "**" + ip + "** has been unbanned, please run `!iptables` to confirm rules"
-
-    await ctx.send(message)
-
-
-@bot.command()
-async def ban(ctx, jail, ip):
-    """Ban an IP address (shorthand ban action for !jailer)"""
-    data = subprocess.check_output(["sudo", "fail2ban-client", "set", jail, "banip", ip])
-
-    message = "**" + ip + "** has been banned, please run `!iptables` to confirm rules"
 
     await ctx.send(message)
 
@@ -124,6 +91,45 @@ async def sys(ctx, metric):
             embedlist.add_field(name='Total', value=str(data['total']) + ' GB')
 
             await ctx.send(embed=embedlist)
+
+
+@bot.command()
+async def iptables(ctx):
+    """Fetch active iptables rules"""
+    data = subprocess.check_output(["sudo", "iptables", "-L"])
+
+    await ctx.send('```\n' + data.decode("utf-8") + '\n```')
+
+    
+@bot.command()
+async def jailer(ctx, jail, action, ip):
+    """Ban/unban an IP address"""
+    data = subprocess.check_output(["sudo", "fail2ban-client", "set", jail, action, ip])
+    actioned = "banned" if action == "banip" else "unbanned"
+
+    message = "**" + ip + "** has been " + actioned + ", please run `!iptables` to confirm rules"
+
+    await ctx.send(message)
+
+
+@bot.command()
+async def ban(ctx, jail, ip):
+    """Ban an IP address (shorthand ban action for !jailer)"""
+    data = subprocess.check_output(["sudo", "fail2ban-client", "set", jail, "banip", ip])
+
+    message = "**" + ip + "** has been banned, please run `!iptables` to confirm rules"
+
+    await ctx.send(message)
+
+
+@bot.command()
+async def unban(ctx, jail, ip):
+    """Unban an IP address (shorthand unban action for !jailer)"""
+    data = subprocess.check_output(["sudo", "fail2ban-client", "set", jail, "unbanip", ip])
+
+    message = "**" + ip + "** has been unbanned, please run `!iptables` to confirm rules"
+
+    await ctx.send(message)
 
 
 bot.run(TOKEN)
