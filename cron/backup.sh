@@ -4,6 +4,8 @@
 # Authors: Rasberry Pi community
 # Slightly mofified to read env variables and add webhook trigger for discord notifications.
 
+# if running as cron job, make sure variables are set in /etc/environment
+
 # Load Environment Variables
 if [ -f .env ];
     export $(cat .env | grep -v '#' | awk '/=/ {print $1}')
