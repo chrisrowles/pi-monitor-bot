@@ -6,13 +6,13 @@ import json
 import os
 import requests
 import settings
-from settings import URL, TOKEN
+from settings import URL, TOKEN, USER_ID, CHANNEL_ID, BACKUP_CHANNEL_ID
 import subprocess
 import tabulate
 
 description = '''System Monitor'''
 bot = commands.Bot(command_prefix='!', description=description)
-bot.add_cog(MainCog(bot=bot, url=URL))
+bot.add_cog(MainCog(bot=bot, url=URL, user=USER_ID, channel=CHANNEL_ID))
 
 # TODO fix this shit-tip file
 #   Fix security vulnerabilities (as much as you can when building something like this anyways..)
@@ -41,9 +41,14 @@ async def good(ctx, arg):
 
 @bot.command()
 async def test(ctx):
-    channel = bot.get_channel(821440456788541522)
-    uid = '<@710218699356766299>'
-    await ctx.send('%s Test Success' % uid)
+    await ctx.send('%s Test Success' % USER_ID)
+
+
+@bot.command()
+async def backup(ctx):
+    await ctx.send('%s Triggering backup process now. Check #backup for status.' % USER_ID)
+
+    subprocess.check_output(["sudo", "bash", "/home/pi/pimonitor_bot/cron/backup.sh"])
 
 
 @bot.command()

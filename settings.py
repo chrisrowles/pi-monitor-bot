@@ -7,3 +7,7 @@ load_dotenv(dotenv_path)
 
 URL = str(os.environ.get('SYSAPI_URL'))
 TOKEN = str(os.environ.get('DISCORD_TOKEN'))
+USER_ID= str(os.environ.get('USER_ID'))
+CHANNEL_ID= int(os.environ.get('CHANNEL_ID'))
+
+BACKUP_CHANNEL_ID=int(os.environ.get('BACKUP_CHANNEL_ID'))

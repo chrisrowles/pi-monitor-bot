@@ -4,12 +4,13 @@ from discord.ext import commands, tasks
 import requests
 
 class MainCog(commands.Cog):
-    def __init__(self, bot, url):
+    def __init__(self, bot, url, user, channel):
         self.index = 0
         self.bot = bot
         self.url = url
-        self.user = '<@710218699356766299>' # me 
+        self.user = user
         self.channel = None
+        self.channel_id = channel
         self.printer.start()
 
 
@@ -19,7 +20,7 @@ class MainCog(commands.Cog):
 
     @tasks.loop(seconds=1800)
     async def printer(self):
-        self.channel = self.bot.get_channel(821440456788541522)
+        self.channel = self.bot.get_channel(self.channel_id)
 
         if self.channel is not None:
             response = requests.get(self.url + 'system/')
