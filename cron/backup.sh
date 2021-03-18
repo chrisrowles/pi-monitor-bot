@@ -6,11 +6,7 @@
 
 # Load Environment Variables
 if [ -f .env ];
-    then
-        discordnotification --webhook-url="$BACKUP_WEBHOOK" --text "**[backup]** started. Estimated time is 1 hour to completion." 
-        export $(cat .env | grep -v '#' | awk '/=/ {print $1}')
-    else
-       discordnotification --webhook-url="$BACKUP_WEBHOOK" --text "**[backup]** error. Unable to read configuration from .env" 
+    export $(cat .env | grep -v '#' | awk '/=/ {print $1}')
 fi
 
 # Setting up directories
