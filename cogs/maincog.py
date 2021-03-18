@@ -8,6 +8,7 @@ class MainCog(commands.Cog):
         self.index = 0
         self.bot = bot
         self.url = url
+        self.user = '<@710218699356766299>' # me 
         self.channel = None
         self.printer.start()
 
@@ -21,7 +22,7 @@ class MainCog(commands.Cog):
         self.channel = self.bot.get_channel(821440456788541522)
 
         if self.channel is not None:
-            response = requests.get(self.url)
+            response = requests.get(self.url + 'system/')
             system = response.json()
             data = system['data']
 

@@ -6,15 +6,13 @@ import json
 import os
 import requests
 import settings
+from settings import URL, TOKEN
 import subprocess
 import tabulate
 
-URL = os.environ.get('SYSAPI_URL')
-TOKEN = os.environ.get('DISCORD_TOKEN')
-
 description = '''System Monitor'''
 bot = commands.Bot(command_prefix='!', description=description)
-#bot.add_cog(MainCog(bot=bot, url=URL))
+bot.add_cog(MainCog(bot=bot, url=URL))
 
 # TODO fix this shit-tip file
 #   Fix security vulnerabilities (as much as you can when building something like this anyways..)
@@ -30,10 +28,28 @@ async def on_ready():
     print(bot.user.id)
     print('------')
 
+
+@bot.command()
+async def good(ctx, arg):
+    if arg == "bot":
+        message = "🤖"
+    else:
+        message = "👀"
+
+    await ctx.send(message)
+
+
+@bot.command()
+async def test(ctx):
+    channel = bot.get_channel(821440456788541522)
+    uid = '<@710218699356766299>'
+    await ctx.send('%s Test Success' % uid)
+
+
 @bot.command()
 async def uptime(ctx):
     """Fetch network uptime"""
-    response = requests.get(URL)
+    response = requests.get(URL + 'system/')
     system = response.json()
     uptime = system['data']['platform']['uptime']
 
@@ -45,7 +61,7 @@ async def uptime(ctx):
 @bot.command()
 async def top(ctx):
     """Fetch top process consuming most memory"""
-    response = requests.get(URL)
+    response = requests.get(URL + 'system/')
     system = response.json()
     process = system['data']['processes'][0]
 
@@ -58,7 +74,7 @@ async def top(ctx):
 async def netauth(ctx, arg):
     """Fetch top process consuming most memory"""
     token = str(arg)
-    response = requests.get('https://sysapi.ddns.net/network/wifi', headers={'Authorization': token})
+    response = requests.get(URL + 'network/wifi', headers={'Authorization': token})
     network = response.json()
     data = json.dumps(network['data'], indent=2)
 
@@ -67,7 +83,7 @@ async def netauth(ctx, arg):
 @bot.command()
 async def sys(ctx, metric):
     """Fetch system metrics for cpu, mem or disk"""
-    response = requests.get(URL)
+    response = requests.get(URL + 'system/')
     system = response.json()
 
     if metric == "raw":
@@ -127,34 +143,23 @@ async def iptables(ctx):
 
     await ctx.send('```\n' + data.decode("utf-8") + '\n```')
 
-    
-@bot.command()
-async def jailer(ctx, jail, action, ip):
-    """Ban/unban an IP address"""
-    data = subprocess.check_output(["sudo", "fail2ban-client", "set", jail, action, ip])
-    actioned = "banned" if action == "banip" else "unbanned"
-
-    message = "**" + ip + "** has been " + actioned + ", please run `!iptables` to confirm rules"
-
-    await ctx.send(message)
-
 
 @bot.command()
 async def ban(ctx, jail, ip):
-    """Ban an IP address (shorthand ban action for !jailer)"""
+    """Ban an IP address"""
     data = subprocess.check_output(["sudo", "fail2ban-client", "set", jail, "banip", ip])
 
-    message = "**" + ip + "** has been banned, please run `!iptables` to confirm rules"
+    message = "**" + ip + "** has been banned, please check #jail for confirmation."
 
     await ctx.send(message)
 
 
 @bot.command()
 async def unban(ctx, jail, ip):
-    """Unban an IP address (shorthand unban action for !jailer)"""
+    """Unban an IP address"""
     data = subprocess.check_output(["sudo", "fail2ban-client", "set", jail, "unbanip", ip])
 
-    message = "**" + ip + "** has been unbanned, please run `!iptables` to confirm rules"
+    message = "**" + ip + "** has been unbanned, please check #jail for confirmation."
 
     await ctx.send(message)
 
