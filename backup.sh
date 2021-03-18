@@ -1,8 +1,12 @@
 #!/usr/bin/env bash
 
+# Credit: https://www.raspberrypi.org/forums/viewtopic.php?p=136912
+# Authors: Rasberry Pi community
+# Slightly mofified to add webhook trigger for discord notifications.
+
 # Setting up directories
-SUBDIR=backup
-DIR=/home/pi/$SUBDIR
+SUBDIR=pi
+DIR=/media/root/backup/$SUBDIR
 
 echo "Starting backup process."
 
@@ -34,6 +38,12 @@ OFILEFINAL=$OFILE.img
 # First sync disks
 sync; sync
 
+# Trigger webhook to notify users on dicord
+WEBHOOKURL="https://discord.com/api/webhooks/822082811401601045/Y3mbAulWCLtq2pfhvN9TDP5lYmkCon9yg8GtAr2Qk3sZ_SQSsyyNozwTyAx6NlG--Nze"
+WEBHOOKTEXT="**[backup]** to \`$OFILEFINAL\` started\nSuspending services for the duration.\n_See you on the other side Coop._"
+
+discordnotification --webhook-url="$WEBHOOKURL" --text "$WEBHOOKTEXT"
+
 # Shut down services before starting backup process
 echo "Suspending services before backup."
 systemctl stop apache2.service
@@ -49,28 +59,39 @@ pv -tpreb /dev/mmcblk0 -s $SDSIZE | dd of=$OFILE bs=1M conv=sync,noerror iflag=f
 # Wait for DD to finish and catch result
 RESULT=$?
 
-# Start services again that where shutdown before backup process
-echo "Start the stopped services again."
-systemctl start apache2.service
-systemctl start mysql.service
-systemctl start cron.service
+discordnotification --webhook-url="$WEBHOOKURL" --text "**[backup]** process has finished, verifying backup."
 
 # If command has completed successfully, delete previous backups and exit
 if [ $RESULT = 0 ];
     then
-        echo "Backup successful, previous backups will be deleted."
+        echo "Backup success, previous backups will be deleted."
+        discordnotification --webhook-url="$WEBHOOKURL" --text "**[backup]** verified. Removing previous backups and compressing archive."
         rm -f $DIR/backup_*.tar.gz
         mv $OFILE $OFILEFINAL
         echo "Tarring backup. Please wait..."
         tar zcf $OFILEFINAL.tar.gz $OFILEFINAL
         rm -rf $OFILEFINAL
+        discordnotification --webhook-url="$WEBHOOKURL" --text "**[backup]** archive compressed and available to download."
         echo "Backup process complete. File - $OFILEFINAL.tar.gz"
+        # Start services again that where shutdown before backup process
+        echo "Start the stopped services again."
+        systemctl start apache2.service
+        systemctl start mysql.service
+        systemctl start cron.service
+
         exit 0
     # Else remove attempted backup file
     else
-        echo "Backup failed! Previous backup files untouched."
-        echo "Please check there is sufficient space on the HDD."
+        echo "Backup error, previous backup files untouched."
+        echo "Please check there is sufficient disk space."
+        discordnotification --webhook-url="$WEBHOOKURL" --text "**[backup]** error. Previous backups left untouched."
         rm -f $OFILE
-        echo "RaspberryPI backup process failed!"
+        echo "Backup process failed."
+        # Start services again that where shutdown before backup process
+        echo "Start the stopped services again."
+        systemctl start apache2.service
+        systemctl start mysql.service
+        systemctl start cron.service
+
         exit 1
 fi
