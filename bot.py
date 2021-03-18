@@ -126,9 +126,6 @@ async def sys(ctx, metric):
 @bot.command()
 async def supervisor(ctx):
     """Get supervisor status"""
-    wd = os.getcwd()
-    os.chdir("/home/pi")
-
     # Obviously supervisor is running otherwise the bot wouldn't respond...
     # probably should rename to make it clearer I want a list of what's running.
     try:
@@ -136,8 +133,6 @@ async def supervisor(ctx):
         message = "supervisor status:\n**" + data.decode("utf-8") + "**"
     except:
         message = "supervisor status:\n**not running.**"
-
-    os.chdir(wd)
 
     await ctx.send(message)
 

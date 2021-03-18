@@ -7,13 +7,13 @@
 # if running as cron job, make sure variables are set in /etc/environment
 
 # Load Environment Variables
-if [ -f .env ];
-    export $(cat .env | grep -v '#' | awk '/=/ {print $1}')
+if [ -f "/home/pi/pimonitor_bot/.env" ]; then
+    export $(cat "/home/pi/pimonitor_bot/.env" | grep -v '#' | awk '/=/ {print $1}')
 fi
 
 # Setting up directories
-SUBDIR=pi
-DIR=/media/root/backup/$SUBDIR
+SUBDIR=backup
+DIR=/media/pi/$SUBDIR
 
 echo "Starting backup process."
 
@@ -54,6 +54,9 @@ systemctl stop apache2.service
 systemctl stop mysql.service
 systemctl stop cron.service
 
+# Shutdown supervisord (run as user pi)
+sudo -u pi supervisorctl shutdown
+
 # Begin the backup process
 echo "Backing up to destination."
 echo "This will take some time depending on card size and read performance. Please wait..."
@@ -85,6 +88,10 @@ if [ $RESULT = 0 ];
         systemctl start apache2.service
         systemctl start mysql.service
         systemctl start cron.service
+        # Restart supervisord
+        cd /home/pi
+        sudo -u pi supervisord
+        sudo -u pi supervisorctl update
 
         exit 0
     # Else remove attempted backup file
@@ -100,6 +107,9 @@ if [ $RESULT = 0 ];
         systemctl start apache2.service
         systemctl start mysql.service
         systemctl start cron.service
+        # Restart supervisord
+        sudo -u pi supervisord
+        sudo -u pi supervisorctl update
 
         exit 1
 fi
