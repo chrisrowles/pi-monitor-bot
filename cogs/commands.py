@@ -79,9 +79,10 @@ class SecurityCommandHandler(commands.Cog, name="Security Commands"):
 
 
     @commands.command(name='iptables', aliases=['firewall', 'rules'])
-    async def iptables(self, ctx):
+    async def iptables(self, ctx, rule=""):
         """Fetch active iptables rules"""
-        data = subprocess.check_output(['sudo', 'iptables', '-L'])
+        process = subprocess.Popen(['sudo', 'iptables', '-L', '-n', '--line-numbers'], stdout=subprocess.PIPE)
+        data = subprocess.check_output(['grep', rule.upper()], stdin=process.stdout)
 
         message = "```\n" + data.decode('utf-8') + "\n```"
 
