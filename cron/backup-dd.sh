@@ -4,18 +4,16 @@
 # Authors: Rasberry Pi community
 # Slightly mofified to read env variables and add webhook trigger for discord notifications.
 
-# if running as cron job, make sure variables are set in /etc/environment
-
 # Load Environment Variables
 if [ -f "/home/pi/pimonitor_bot/.env" ]; then
     export $(cat "/home/pi/pimonitor_bot/.env" | grep -v '#' | awk '/=/ {print $1}')
 fi
 
 # Setting up directories
-SUBDIR=backup
-DIR=/media/pi/$SUBDIR
+SUBDIR=image
+DIR=/media/root/backup/pi/$SUBDIR
 
-echo "Starting backup process."
+echo "Starting image backup process."
 
 # First check if pv package is installed, if not, install it first
 PACKAGESTATUS=`dpkg -s pv | grep Status`;
@@ -32,7 +30,7 @@ fi
 # Check if backup directory exists
 if [ ! -d "$DIR" ];
     then
-        echo "Backup directory $DIR does not exist, creating it now."
+        echo "Image backup directory $DIR does not exist, creating it now."
         mkdir $DIR
 fi
 
@@ -46,13 +44,12 @@ OFILEFINAL=$OFILE.img
 sync; sync
 
 # notify discord channel
-discordnotification --webhook-url="$BACKUP_WEBHOOK" --text "**[backup]** to \`$OFILEFINAL\` started\nSuspending services for the duration.\n_See you on the other side Coop._"
+discordnotification --webhook-url="$BACKUP_WEBHOOK" --text "**[image]** backup to \`$OFILEFINAL\` started\nSuspending services for the duration.\n_See you on the other side Coop._"
 
 # Shut down services before starting backup process
-echo "Suspending services before backup."
+echo "Suspending services before image backup."
 systemctl stop apache2.service
 systemctl stop mysql.service
-systemctl stop cron.service
 
 # Shutdown supervisord (run as user pi)
 sudo -u pi supervisorctl shutdown
@@ -67,27 +64,26 @@ pv -tpreb /dev/mmcblk0 -s $SDSIZE | dd of=$OFILE bs=1M conv=sync,noerror iflag=f
 RESULT=$?
 
 # notify discord channel
-discordnotification --webhook-url="$BACKUP_WEBHOOK" --text "**[backup]** process has finished, verifying backup."
+discordnotification --webhook-url="$BACKUP_WEBHOOK" --text "**[image]** backup process has finished, verifying backup."
 
 # If command has completed successfully, delete previous backups and exit
 if [ $RESULT = 0 ];
     then
         echo "Backup success, previous backups will be deleted."
-        discordnotification --webhook-url="$BACKUP_WEBHOOK" --text "**[backup]** verified. Removing previous backups and compressing archive."
+        discordnotification --webhook-url="$BACKUP_WEBHOOK" --text "**[image]** verified. Removing previous backups and compressing image to archive."
         rm -f $DIR/backup_*.tar.gz
         mv $OFILE $OFILEFINAL
         echo "Tarring backup. Please wait..."
         tar zcf $OFILEFINAL.tar.gz $OFILEFINAL
         rm -rf $OFILEFINAL
         # notify discord channel
-        discordnotification --webhook-url="$BACKUP_WEBHOOK" --text "**[backup]** complete. Archive compressed and available to download."
+        discordnotification --webhook-url="$BACKUP_WEBHOOK" --text "**[image]** backup complete. Archive compressed and available to download."
 
         echo "Backup process complete. File - $OFILEFINAL.tar.gz"
         # Start services again that where shutdown before backup process
         echo "Start the stopped services again."
         systemctl start apache2.service
         systemctl start mysql.service
-        systemctl start cron.service
         # Restart supervisord
         cd /home/pi
         sudo -u pi supervisord
@@ -99,14 +95,13 @@ if [ $RESULT = 0 ];
         echo "Backup error, previous backup files untouched."
         echo "Please check there is sufficient disk space."
         # notify discord channel
-        discordnotification --webhook-url="$BACKUP_WEBHOOK" --text "**[backup]** error. Previous backups left untouched."
+        discordnotification --webhook-url="$BACKUP_WEBHOOK" --text "**[image]** backup error. Previous image left untouched."
         rm -f $OFILE
         echo "Backup process failed."
         # Start services again that where shutdown before backup process
         echo "Start the stopped services again."
         systemctl start apache2.service
         systemctl start mysql.service
-        systemctl start cron.service
         # Restart supervisord
         sudo -u pi supervisord
         sudo -u pi supervisorctl update
