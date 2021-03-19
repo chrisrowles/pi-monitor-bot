@@ -1,4 +1,9 @@
-# Load Environment Variables
+#!/usr/bin/env bash
+
+# Authors: Chris Rowles
+# Incremental backup using rsync and discord webhooks.
+
+# Load environment variables
 if [ -f "/home/pi/pimonitor_bot/.env" ]; then
     export $(cat "/home/pi/pimonitor_bot/.env" | grep -v '#' | awk '/=/ {print $1}')
 fi
@@ -17,13 +22,8 @@ fi
 # notify discord channel
 discordnotification --webhook-url="$BACKUP_WEBHOOK" --text "**[incremental]** backup to \`$DIR\` started.\nRunning rsync in archive mode and preserving hard links."
 
-echo "Starting backup, this may take some time."
+echo "Starting incremental backup, this may take some time."
 rsync -aH --delete --exclude-from=/home/pi/pimonitor_bot/cron/rsync-exclude.txt / $DIR
 
 # notify discord channel
-discordnotification --webhook-url="$BACKUP_WEBHOOK" --text "**[incremental]** backup has completed successfully.\nNext backup will be performed tomorrow at 20:00."
-
-
-
-
-
+discordnotification --webhook-url="$BACKUP_WEBHOOK" --text "**[incremental]** backup has completed successfully.\nNext backup will be performed tomorrow at 09:00AM."

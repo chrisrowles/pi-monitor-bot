@@ -2,8 +2,10 @@ import asyncio
 import discord
 from discord.ext import commands, tasks
 import requests
+import subprocess
 
-class MainCog(commands.Cog):
+
+class SystemReporting(commands.Cog):
     def __init__(self, bot, url, user, channel):
         self.index = 0
         self.bot = bot
@@ -11,15 +13,15 @@ class MainCog(commands.Cog):
         self.user = user
         self.channel = None
         self.channel_id = channel
-        self.printer.start()
+        self.system.start()
 
 
     def cog_unload(self):
-        self.printer.cancel()
+        self.system.cancel()
 
 
     @tasks.loop(seconds=1800)
-    async def printer(self):
+    async def system(self):
         self.channel = self.bot.get_channel(self.channel_id)
 
         if self.channel is not None:
@@ -49,7 +51,8 @@ class MainCog(commands.Cog):
         await self.channel.send(embed=embedlist)
 
 
-    @printer.before_loop
-    async def before_printer(self):
+    @system.before_loop
+    async def before_system(self):
         print('waiting...')
+
         await self.bot.wait_until_ready()

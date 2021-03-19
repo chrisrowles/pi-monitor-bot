@@ -17,7 +17,6 @@ echo "Starting image backup process."
 
 # First check if pv package is installed, if not, install it first
 PACKAGESTATUS=`dpkg -s pv | grep Status`;
-
 if [[ $PACKAGESTATUS == S* ]]
     then
         echo "pv is installed."
@@ -44,14 +43,12 @@ OFILEFINAL=$OFILE.img
 sync; sync
 
 # notify discord channel
-discordnotification --webhook-url="$BACKUP_WEBHOOK" --text "**[image]** backup to \`$OFILEFINAL\` started\nSuspending services for the duration.\n_See you on the other side Coop._"
+discordnotification --webhook-url="$BACKUP_WEBHOOK" --text "**[image]** backup to \`$OFILEFINAL\` started.\nSuspending services for the duration.\n_See you on the other side Coop._"
 
 # Shut down services before starting backup process
 echo "Suspending services before image backup."
 systemctl stop apache2.service
 systemctl stop mysql.service
-
-# Shutdown supervisord (run as user pi)
 sudo -u pi supervisorctl shutdown
 
 # Begin the backup process
@@ -64,47 +61,44 @@ pv -tpreb /dev/mmcblk0 -s $SDSIZE | dd of=$OFILE bs=1M conv=sync,noerror iflag=f
 RESULT=$?
 
 # notify discord channel
-discordnotification --webhook-url="$BACKUP_WEBHOOK" --text "**[image]** backup process has finished, verifying backup."
+discordnotification --webhook-url="$BACKUP_WEBHOOK" --text "**[image]** backup has been created, verifying now."
 
 # If command has completed successfully, delete previous backups and exit
 if [ $RESULT = 0 ];
     then
+        discordnotification --webhook-url="$BACKUP_WEBHOOK" --text "**[image]** backup is verified. Removing previous backups and compressing to archive."
+
         echo "Backup success, previous backups will be deleted."
-        discordnotification --webhook-url="$BACKUP_WEBHOOK" --text "**[image]** verified. Removing previous backups and compressing image to archive."
         rm -f $DIR/backup_*.tar.gz
         mv $OFILE $OFILEFINAL
+        
         echo "Tarring backup. Please wait..."
         tar zcf $OFILEFINAL.tar.gz $OFILEFINAL
         rm -rf $OFILEFINAL
+
         # notify discord channel
-        discordnotification --webhook-url="$BACKUP_WEBHOOK" --text "**[image]** backup complete. Archive compressed and available to download."
+        discordnotification --webhook-url="$BACKUP_WEBHOOK" --text "**[image]** backup has been compressed and is available to download."
 
         echo "Backup process complete. File - $OFILEFINAL.tar.gz"
-        # Start services again that where shutdown before backup process
-        echo "Start the stopped services again."
-        systemctl start apache2.service
-        systemctl start mysql.service
-        # Restart supervisord
-        cd /home/pi
-        sudo -u pi supervisord
-        sudo -u pi supervisorctl update
-
-        exit 0
-    # Else remove attempted backup file
+    # Else remove attempted backup image
     else
         echo "Backup error, previous backup files untouched."
         echo "Please check there is sufficient disk space."
-        # notify discord channel
-        discordnotification --webhook-url="$BACKUP_WEBHOOK" --text "**[image]** backup error. Previous image left untouched."
         rm -f $OFILE
-        echo "Backup process failed."
-        # Start services again that where shutdown before backup process
-        echo "Start the stopped services again."
-        systemctl start apache2.service
-        systemctl start mysql.service
-        # Restart supervisord
-        sudo -u pi supervisord
-        sudo -u pi supervisorctl update
 
-        exit 1
+        # notify discord channel
+        discordnotification --webhook-url="$BACKUP_WEBHOOK" --text "**[image]** backup error. Previous backup left untouched."
+
+        echo "Backup process failed."
 fi
+
+discordnotification --webhook-url="$BACKUP_WEBHOOK" --text "**[image]** backup process has finished ${STATUS}, restarting services."
+
+# Restart stopped services.
+echo "Starting the stopped services again."
+systemctl start apache2.service
+systemctl start mysql.service
+sudo -u pi supervisord
+sudo -u pi supervisorctl update
+
+exit $RESULT
