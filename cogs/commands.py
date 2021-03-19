@@ -197,9 +197,9 @@ class MiscCommandHandler(commands.Cog, name="Miscellaneous Commands"):
         self.user = user
 
     @commands.command(name="showerthought")
-    async def showerthought(ctx):
+    async def showerthought(self, ctx):
         """Reddit shower thought of the day"""
         data = subprocess.check_output(["showerthought"])
-        message = "🚿 r/showerthought of the day 🚿\n> " + data.decode('utf-8')
+        message = "🚿 r/showerthought of the day 🚿\n\n> " + data.decode('utf-8')
 
         await ctx.send(message)
