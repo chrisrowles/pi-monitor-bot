@@ -1,0 +1,22 @@
+#[sshd]
+#enabled = true
+#filter = sshd
+#mode = aggressive
+#logpath=/var/log/auth.log
+#banaction = iptables-multiport
+#ignoreip = 192.168.1.101 127.0.0.1 109.147.71.216
+#
+#failregex = %(known/failregex)s
+#            ^Failed publickey for <F-USER>.+</F-USER> from <HOST>
+#action = iptables[name=ban, port=22, protocol=tcp]
+
+[sshd]
+enabled = true
+filter = sshd
+action = discord_notifications[bantime=24, discord_userid=<@!710218699356766299>]
+         iptables[name=SSH, port=ssh, protocol=tcp]
+logpath = /var/log/auth.log
+findtime = 600
+maxretry = 3
+bantime = 86400
+backend = polling
