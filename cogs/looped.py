@@ -53,6 +53,4 @@ class SystemReporting(commands.Cog):
 
     @system.before_loop
     async def before_system(self):
-        print('waiting...')
-
         await self.bot.wait_until_ready()

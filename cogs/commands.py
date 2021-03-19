@@ -49,7 +49,7 @@ class CommandErrorHandler(commands.Cog):
             await ctx.send('A fucking error occurred.')
 
 
-class LogCommandHandler(commands.Cog):
+class LogCommandHandler(commands.Cog, name="Log Monitoring Comamnds"):
     def __init__(self, bot):
         self.bot = bot
 
@@ -73,7 +73,7 @@ class LogCommandHandler(commands.Cog):
         await ctx.send(message)
 
 
-class SecurityCommandHandler(commands.Cog):
+class SecurityCommandHandler(commands.Cog, name="Security Commands"):
     def __init__(self, bot):
         self.bot = bot
 
@@ -108,11 +108,12 @@ class SecurityCommandHandler(commands.Cog):
         await ctx.send(message)
 
 
-class SystemCommandHandler(commands.Cog):
+class SystemCommandHandler(commands.Cog, name='System Monitoring Commands'):
     def __init__(self, bot, url):
         self.bot = bot
         self.url = url
     
+
     @commands.command(name='uptime')
     async def uptime(self, ctx):
         """Fetch network uptime"""
@@ -185,5 +186,19 @@ class SystemCommandHandler(commands.Cog):
             message = "supervisor status:\n```" + data.decode('utf-8') + "```"
         except:
             message = "supervisor status:\n**not running.**"
+
+        await ctx.send(message)
+
+
+class MiscCommandHandler(commands.Cog, name="Miscellaneous Commands"):
+    def __init__(self, bot, user):
+        self.bot = bot
+        self.user = user
+
+    @commands.command(name="showerthought")
+    async def showerthought(ctx):
+        """Reddit shower thought of the day"""
+        data = subprocess.check_output(["showerthought"])
+        message = "🚿 r/showerthought of the day 🚿\n> " + data.decode('utf-8')
 
         await ctx.send(message)
