@@ -3,6 +3,6 @@
 [program:monitorbot]
 process_name = monitorbot-%(process_num)s
 command = python /home/pi/pi-monitord/bot.py --daemon
-stdout_logfile=/var/log/supervisor/%(program_name)s-%(process_num)s.log
+stdout_logfile=/home/pi/logs/%(program_name)s-%(process_num)s.log
 numprocs = 1
 numprocs_start = 9005
