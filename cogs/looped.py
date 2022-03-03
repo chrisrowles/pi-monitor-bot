@@ -2,8 +2,6 @@ import asyncio
 import discord
 from discord.ext import commands, tasks
 import requests
-import subprocess
-
 
 class SystemReporting(commands.Cog):
     def __init__(self, bot, url, user, channel):
@@ -33,18 +31,29 @@ class SystemReporting(commands.Cog):
                 await self.top(data['processes'][0])
                 await asyncio.sleep(5)
 
-            await self.sys(data)
+            await self.output(data)
 
 
     async def top(self, process):
-        message = "Top process is " + process['name'].capitalize() + ' - ' + str(process['mem']) + 'MiB  - Owned by ' + process['username']
+        message = 'Owner: ' + process['username'] + '\nUsing: ' + str(process['mem']) + ' mib'
 
-        await self.channel.send(message)
+        embedlist = discord.Embed(title='Top Process', color=discord.Color.purple())
+        embedlist.add_field(name=process['name'].capitalize(), value=message)
+
+        await self.channel.send(embed=embedlist)
 
 
-    async def sys(self, data):
-        embedlist = discord.Embed(title='System', description='Overview')
-        embedlist.add_field(name='Temp', value=str(data['cpu']['temp']) + ' °c')
+    async def output(self, data):
+        temp = data['cpu']['temp']
+        if (temp <= 50):
+            color = discord.Color.green()
+        elif (temp > 50):
+            color = discord.Color.red()
+        else:
+            color = discord.Color.dark_red()
+
+        embedlist = discord.Embed(title='System', description='Overview', color=color)
+        embedlist.add_field(name='Temp', value=str(temp) + ' °c')
         embedlist.add_field(name='CPU', value=str(data['cpu']['usage']) + '%')
         embedlist.add_field(name='Memory', value=str(data['mem']['percent']) + '%')
 

@@ -1,12 +1,15 @@
-from datetime import datetime
+import asyncio
 import discord
-from discord.ext import commands
+from datetime import datetime
+from discord.ext import commands, tasks
 import json
 import requests
 import subprocess
 import sys
 import tabulate
 import traceback
+
+from pprint import pprint
 
 class CommandErrorHandler(commands.Cog):
     def __init__(self, bot):
@@ -49,78 +52,140 @@ class CommandErrorHandler(commands.Cog):
             await ctx.send('A fucking error occurred.')
 
 
-class LogCommandHandler(commands.Cog, name="Log Monitoring Comamnds"):
-    def __init__(self, bot):
-        self.bot = bot
-
-
-    @commands.command(name='showlog', aliases=['tail'])
-    async def showlog(self, ctx, log, date=None):
-        """Fetch log data"""
-        today = datetime.today().strftime('%Y-%m-%d')
-        if date is not None:
-            today = date
-
-        if log == "dpkg":
-            process = subprocess.Popen(['grep', today + '.*. install ', '/var/log/dpkg.log'], stdout=subprocess.PIPE)
-            data = subprocess.check_output(['awk', '-F', '" "', '"{print $1 " " $2 " " $4}"'], stdin=process.stdout)
-        elif log == "auth":
-            process = subprocess.Popen(['tail', '/var/log/auth.log'], stdout=subprocess.PIPE)
-            data = subprocess.check_output(['grep', 'sshd'], stdin=process.stdout)
-
-        message = "```\n" + data.decode('utf-8') + "\n```"
-
-        await ctx.send(message)
-
-
 class SecurityCommandHandler(commands.Cog, name="Security Commands"):
     def __init__(self, bot):
         self.bot = bot
+        self.breach_id = 948990582510997595
+        self.breach.start()
 
 
-    @commands.command(name='iptables', aliases=['firewall', 'rules'])
-    async def iptables(self, ctx, rule=""):
-        """Fetch active iptables rules"""
-        process = subprocess.Popen(['sudo', 'iptables', '-L', '-n', '--line-numbers'], stdout=subprocess.PIPE)
-        data = subprocess.check_output(['grep', rule.upper()], stdin=process.stdout)
-
-        message = "```\n" + data.decode('utf-8') + "\n```"
-
-        await ctx.send(message)
+    def cog_unload(self):
+        self.system.cancel()
 
 
-    @commands.command(name='ban')
-    async def ban(self, ctx, jail, ip):
-        """Ban an IP address"""
-        data = subprocess.check_output(['sudo', 'fail2ban-client', 'set', jail, 'banip', ip])
+    @commands.command(name='hibp')
+    async def hibp(self, ctx, account):
+        """Fetch breached account data"""
+        await ctx.send('Obtaining data breaches linked to ' + str(account) + '...')
 
-        message = "**" + ip + "** has been banned, please check #jail for confirmation."
+        response = requests.get('https://breach.api.rowles.ch/v1/breachedaccounts/' + str(account))
+        breaches = response.json()
+        message = breaches['message']
 
-        await ctx.send(message)
+        if breaches['data'] is None:
+            embedlist = discord.Embed(title='Data Breach Service', color=discord.Color.green())
+            embedlist.add_field(name='Result', value=message)
+
+            await ctx.send(embed=embedlist)
+            return
+        else:
+            embedlist = discord.Embed(title='Data Breach Service', color=discord.Color.red())
+            embedlist.add_field(name='Result', value=message + ' Listing breaches below, please wait...')
+
+            await ctx.send(embed=embedlist)
+            await asyncio.sleep(3)
+
+        for index, breach in enumerate(breaches['data']):
+            if (breach['domain']) != '':
+                domain = "[" + str(breach['domain']) + "](https://" + str(breach['domain']) + ")"
+            else:
+                domain = "N/A"
+
+            date_format_from = '%Y-%m-%d %H:%M:%S'
+            date_format_to = '%a %d %B %Y'
+
+            breach_date = datetime.strptime(str(breach['breach_date']), date_format_from)
+            breach_date = datetime.strftime(breach_date, date_format_to)
+
+            added_date = datetime.strptime(str(breach['added_date']), date_format_from)
+            added_date = datetime.strftime(added_date, date_format_to)
+
+            embedlist = discord.Embed(title='Breach #' + str(index+1), color = discord.Color.red())
+            output = "Domain: " + domain + "\nOccured: " + breach_date + "\nReported: " + added_date
+            embedlist.add_field(name=str(breach['title']), value=output, inline=False)
+
+            await ctx.send(embed=embedlist)
+            await asyncio.sleep(1)
 
 
-    @commands.command(name='unban')
-    async def unban(self, ctx, jail, ip):
-        """Unban an IP address"""
-        data = subprocess.check_output(['sudo', 'fail2ban-client', 'set', jail, 'unbanip', ip])
+    @tasks.loop(seconds=86400)
+    async def breach(self):
+        self.channel = self.bot.get_channel(self.breach_id)
+        await self.channel.send('================ **BREACH SERVICE REPORT START** ================')
+        await asyncio.sleep(3)
 
-        message = "**" + ip + "** has been unbanned, please check #jail for confirmation."
+        accounts = [
+            'christopher.rowles@outlook.com',
+            'chrisrowles93@hotmail.com',
+            'me@rowles.ch',
+            'crowles.sdx@gmail.com',
+            'rowlesh@aol.com'
+        ]
 
-        await ctx.send(message)
+        for account in accounts:
+            """Fetch breached account data"""
+            await self.channel.send('Obtaining data breaches linked to ' + str(account) + '...')
+
+            response = requests.get('https://breach.api.rowles.ch/v1/breachedaccounts/' + str(account))
+            breaches = response.json()
+            message = breaches['message']
+
+            processing = True
+            if breaches['data'] is None:
+                embedlist = discord.Embed(title='Data Breach Service', color=discord.Color.green())
+                embedlist.add_field(name='Result', value=message)
+
+                await self.channel.send(embed=embedlist)
+                processing = False
+            else:
+                embedlist = discord.Embed(title='Data Breach Service', color=discord.Color.red())
+                embedlist.add_field(name='Result', value=message + ' Listing breaches below, please wait...')
+
+                await self.channel.send(embed=embedlist)
+                await asyncio.sleep(3)
+
+            if processing is True:
+                for index, breach in enumerate(breaches['data']):
+                    if (breach['domain']) != '':
+                        domain = "[" + str(breach['domain']) + "](https://" + str(breach['domain']) + ")"
+                    else:
+                        domain = "N/A"
+
+                    date_format_from = '%Y-%m-%d %H:%M:%S'
+                    date_format_to = '%a %d %B %Y'
+
+                    breach_date = datetime.strptime(str(breach['breach_date']), date_format_from)
+                    breach_date = datetime.strftime(breach_date, date_format_to)
+
+                    added_date = datetime.strptime(str(breach['added_date']), date_format_from)
+                    added_date = datetime.strftime(added_date, date_format_to)
+
+                    embedlist = discord.Embed(title='Breach #' + str(index+1), color = discord.Color.red())
+                    output = "Domain: " + domain + "\nOccured: " + breach_date + "\nReported: " + added_date
+                    embedlist.add_field(name=str(breach['title']), value=output, inline=False)
+
+                    await self.channel.send(embed=embedlist)
+                    await asyncio.sleep(1)
+                
+            await asyncio.sleep(5)
+
+        await self.channel.send('================ **BREACH SERVICE REPORT END** ================')
+    @breach.before_loop
+    async def before_breach(self):
+        await self.bot.wait_until_ready()
 
 
-class SystemCommandHandler(commands.Cog, name='System Monitoring Commands'):
+class SystemCommandHandler(commands.Cog, name='System Commands'):
     def __init__(self, bot, url):
         self.bot = bot
         self.url = url
-    
+
 
     @commands.command(name='uptime')
     async def uptime(self, ctx):
         """Fetch network uptime"""
         response = requests.get(self.url + 'system/')
         system = response.json()
-        uptime = system['data']['platform']['uptime']
 
         message = "Network has been up for " + system['data']['platform']['uptime']
 
@@ -177,8 +242,8 @@ class SystemCommandHandler(commands.Cog, name='System Monitoring Commands'):
                 await ctx.send(embed=embedlist)
 
 
-    @commands.command(name='supervisord')
-    async def supervisor(self, ctx):
+    @commands.command(name='supctl')
+    async def supctl(self, ctx):
         """Get supervisor status"""
         # Obviously supervisor is running otherwise the bot wouldn't respond...
         # probably should rename to make it clearer I want a list of what's running.
@@ -191,15 +256,55 @@ class SystemCommandHandler(commands.Cog, name='System Monitoring Commands'):
         await ctx.send(message)
 
 
+class NetCommandHandler(commands.Cog, name="Network Commands"):
+    def __init__(self, bot):
+        self.bot = bot
+
+
+    @commands.command(name='inet')
+    async def inet(self, ctx):
+        """Fetch network information"""
+        process = subprocess.Popen(['hostname', '-I'], stdout=subprocess.PIPE)
+        ip = subprocess.check_output(['awk', '{print $1}'], stdin=process.stdout).decode('utf-8')
+
+        process = subprocess.Popen(['ip', '-o', '-f', 'inet', 'addr', 'show'], stdout=subprocess.PIPE)
+        subnet = subprocess.check_output(['awk', '/scope global/ {print $4}'], stdin=process.stdout).decode('utf-8')
+
+        process = subprocess.Popen(['ip', 'r'], stdout=subprocess.PIPE)
+        gateway = subprocess.check_output(['awk', 'NR==1{print $3}'], stdin=process.stdout).decode('utf-8')
+
+        embedlist = discord.Embed(title='Network', description='network information')
+        embedlist.add_field(name='IP', value=ip)
+        embedlist.add_field(name='Subnet', value=subnet)
+        embedlist.add_field(name='Gateway', value=gateway)
+
+        await ctx.send(embed=embedlist)
+
+
+    @commands.command(name='dig')
+    async def dig(self, ctx, type, site, rule=""):
+        """Fetch DNS information"""
+        process = subprocess.Popen(['dig', type, site], stdout=subprocess.PIPE)
+        data = subprocess.check_output(['grep', rule.upper()], stdin=process.stdout)
+
+        message = "```\n" + data.decode('utf-8') + "\n```"
+
+        await ctx.send(message)
+
+
 class MiscCommandHandler(commands.Cog, name="Miscellaneous Commands"):
     def __init__(self, bot, user):
         self.bot = bot
         self.user = user
 
-    @commands.command(name="showerthought")
-    async def showerthought(self, ctx):
-        """Reddit shower thought of the day"""
-        data = subprocess.check_output(["showerthought"])
-        message = "🚿 r/showerthought of the day 🚿\n\n> " + data.decode('utf-8')
 
-        await ctx.send(message)
+    @commands.command(name='crypto')
+    async def crypto(self, ctx, coin="", rule=""):
+        """Fetch crypto price information"""
+        process = subprocess.Popen(['sudo', 'cryptocheck', coin], stdout=subprocess.PIPE)
+        data = subprocess.check_output(['grep', rule.upper()], stdin=process.stdout)
+
+        embedlist = discord.Embed(title='Cryptocurrency Exchange Rate', description='Price to GBP', color = discord.Color.dark_gold())
+        embedlist.add_field(name=str(coin).capitalize(), value=data.decode('UTF-8'))
+
+        await ctx.send(embed=embedlist)
