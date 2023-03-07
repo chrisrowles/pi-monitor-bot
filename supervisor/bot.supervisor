@@ -1,8 +1,8 @@
 # -*- conf -*-
 
-[program:pi-monitord]
-process_name = pi-monitord-%(process_num)s
-command = python /home/pi/pi-monitord/bot.py --daemon
+[program:pi-monitor-discord]
+process_name = pi-monitor-discord-%(process_num)s
+command = python /home/pi/pi-monitor-discord/bot.py --daemon
 stdout_logfile=/var/log/supervisor/%(program_name)s-%(process_num)s.log
 numprocs = 1
 numprocs_start = 9005
