@@ -18,7 +18,7 @@ class SystemReporting(commands.Cog):
         self.system.cancel()
 
 
-    @tasks.loop(seconds=1800)
+    @tasks.loop(seconds=30)
     async def system(self):
         self.channel = self.bot.get_channel(self.channel_id)
 

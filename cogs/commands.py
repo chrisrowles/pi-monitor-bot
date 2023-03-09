@@ -1,15 +1,11 @@
-import asyncio
 import discord
-from datetime import datetime
-from discord.ext import commands, tasks
+from discord.ext import commands
 import json
 import requests
 import subprocess
 import sys
 import tabulate
 import traceback
-
-from pprint import pprint
 
 class CommandErrorHandler(commands.Cog):
     def __init__(self, bot):
@@ -50,26 +46,6 @@ class CommandErrorHandler(commands.Cog):
             traceback.print_exception(type(error), error, error.__traceback__, file=sys.stderr)
 
             await ctx.send('A fucking error occurred.')
-
-
-class SecurityCommandHandler(commands.Cog, name="Security Commands"):
-    def __init__(self, bot):
-        self.bot = bot
-
-    def cog_unload(self):
-        self.system.cancel()
-
-    @commands.command(name='hibp')
-    async def hibp(self, ctx, account):
-        await asyncio.sleep(1)
-
-    @tasks.loop(seconds=86400)
-    async def breach(self):
-        await asyncio.sleep(5)
-
-    @breach.before_loop
-    async def before_breach(self):
-        await self.bot.wait_until_ready()
 
 
 class SystemCommandHandler(commands.Cog, name='System Commands'):
